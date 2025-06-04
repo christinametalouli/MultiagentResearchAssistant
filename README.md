@@ -102,7 +102,7 @@ Make sure this sub-workflow is:
 
 ## 💡 Example Use Case
 
-A user submits a topic like *“The Future of Ethical AI”*. The system creates a research-backed outline, writes well-structured chapters with citations, edits and formats the content into HTML, and emails the final article—ready for publication or internal review.
+A user submits a topic like *“The Future of Ethical AI”*. The system creates a research-backed outline, writes well-structured chapters with citations, edits and formats the content into HTML, and emails the final article, ready for publication or internal review.
 
 ---
 
