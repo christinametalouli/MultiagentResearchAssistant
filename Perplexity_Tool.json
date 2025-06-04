@@ -1,0 +1,112 @@
+{
+  "name": "Perplexity Tool",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\n  \"Topic\": \"a string\"\n}"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "13bb88ab-28ee-42a0-a654-9f305373a244",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"sonar-pro\",\n  \"messages\": [\n    {\"role\": \"system\", \"content\": \"You are a helpful assistant. Return the answer not your flow of thinking. The date to search is {{ $now}} \"},\n    {\"role\": \"user\", \"content\": \"{{ $json.Topic }}\"}\n  ],\n  \"max_tokens\": 1000\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        0
+      ],
+      "id": "269cb730-8135-4457-8197-14a4b0046f2d",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "x5GxynzMxF7e7lZt",
+          "name": "Perplexity Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "bee75901-0e8f-413b-a684-3a99254696b2",
+              "name": "Response",
+              "value": "={{ $json.choices[0].message.content }}\n\nCitations: \n{{ $json.citations }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        460,
+        0
+      ],
+      "id": "50d1d0bd-1992-45ac-baeb-44aaf92e58a5",
+      "name": "Edit Fields"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "85274a79-82df-4a15-a723-fd6f49b02d61",
+  "meta": {
+    "instanceId": "5aa5608c063f9a5af1b19fba94653fe7c2a996710129424fdbb744132f878fab"
+  },
+  "id": "i5NILuU4eKZDsNS7",
+  "tags": []
+}

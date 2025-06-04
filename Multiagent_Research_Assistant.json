@@ -1,0 +1,445 @@
+{
+  "name": "Multiagent Research Assistant",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Please fill out the topic",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Topic:"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "6f72b2da-7f32-4eb3-9f45-f92f59a1eeb2",
+      "name": "On form submission",
+      "webhookId": "3f9c0c82-9887-46bb-930c-999b10afcea4"
+    },
+    {
+      "parameters": {
+        "name": "perplexity_ai_search",
+        "description": "Call this tool to get more information about the topic.",
+        "workflowId": {
+          "__rl": true,
+          "value": "i5NILuU4eKZDsNS7",
+          "mode": "list",
+          "cachedResultName": "Perplexity Tool"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Topic": "={{ $('On form submission').item.json['Topic:'] }}"
+          },
+          "matchingColumns": [
+            "Topic"
+          ],
+          "schema": [
+            {
+              "id": "Topic",
+              "displayName": "Topic",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2,
+      "position": [
+        880,
+        440
+      ],
+      "id": "89344875-17e7-4a88-8a2a-eb1ea7f58059",
+      "name": "Perplexity Tool"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "message.content.chapters",
+        "include": "allOtherFields",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        880,
+        0
+      ],
+      "id": "dce2b771-421f-49fc-a6a8-3d3b0130c03c",
+      "name": "Split Out2"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=This is the tittle of the main article: {{ $json.message.content.title }}\n\nWrite only the chapter titled: {{ $json['message.content.chapters'].chapter_title }}\nThe chapter should be about: {{ $json['message.content.chapters'].chapter_prompt }}\n\nMake sure to include citations in the final output.  They are provided by the perplexity_ai_search tool\n",
+        "options": {
+          "systemMessage": "=You are a dedicated Research Assistant AI agent, working as part of a research team under the\nguidance of a Research Leader and Project Planner. Your task is to write a chapter in the as\npart of the overall research into a topic.\n\nGuidelines:\n- Just return the plain text for each chapter (no JSON structure).\n- Use the perplexity_ai_search tool to research the topic in the chapter\n- Use html format for output\n- Don’t add internal titles or headings.\n- The length of each chapter should be around 100-300 words long\n- Go deep in the topic you treat, don’t just throw some superficial\n  info\n- Consider the previous and following chapters what writing the text for this chapter. The\n  text must be coherent with the previous and following chapters.\n- This chapter should not repeat the concepts already exposed in the previous chapter.\n- This chapter is a part of a larger article so don't include an introduction or conclusions.\n  This chapter should merge with the rest of the article.\n- Please write in a style that is formal\n- Please use the perplexity online tool as source of information to use to write the chapter\n- Make sure to include citations from the perplexity_ai_search tool in your writing\n\nCitation Guidelines:\n- Use the perplexity_ai_search tool to gather information and cite sources\n- For each major claim or piece of information, include a hyperlinked inline citation\n- Format citations as HTML links with descriptive text:\n  <a href=\"[URL]\">[Source: Publication Name]</a>\n- Examples of proper citation format:\n  - \"According to recent data <a href=\"https://www.mckinsey.com/article-url\">[Source:\n      McKinsey & Company]</a>...\"\n- When directly quoting from a source, use quotation marks and include the citation\n\nToday’s date is: {{ $now }}\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        1080,
+        0
+      ],
+      "id": "5b40c30f-35b5-47c2-ba2f-03453e48fa34",
+      "name": "Research agent assistant"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        1500,
+        0
+      ],
+      "id": "663b0b76-4921-43c7-886a-a9e8f447b4c9",
+      "name": "Merge1"
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "'message.content.chapters'].promp",
+              "renameField": true,
+              "outputFieldName": "title"
+            },
+            {
+              "fieldToAggregate": "output"
+            },
+            {
+              "fieldToAggregate": "message.content.introduction"
+            },
+            {
+              "fieldToAggregate": "message.content.conclusions"
+            },
+            {
+              "fieldToAggregate": "message.content.imagePrompt"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1700,
+        0
+      ],
+      "id": "f8a53ff6-a937-4599-beff-5369f4e1f319",
+      "name": "Aggregate2"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Article to edit: \n{{ $json.introduction[0] }}\n\n\n{{ $json.output }}\n\n\n{{ $json.conclusions[0] }}",
+        "options": {
+          "systemMessage": "=You are an expert Editor specializing in refining and polishing content to ensure it meets the\nhighest quality standards. Your role is to review and improve the written material produced by\nmultiple writers while maintaining academic integrity and proper source attribution. Your\ntask is to provide a highly polished, SEO-optimized article with proper citation management.\n\nContent Review Instructions:\n- Carefully read the entire content piece\n- Check for grammar, spelling, and punctuation errors\n- Ensure consistency in tone, style, and voice throughout the piece\n- Verify that the content aligns with the original brief and project requirements\n- Improve sentence structure and flow for better readability\n- Optimize headlines, subheadings, and formatting for better engagement especially for SEO\n- Suggest improvements or additions to enhance the overall quality of the content\n\nCitation Management Instructions:\n- Preserve all inline citations from the original writers in the format [Source:\n  Author/Publication Name]\n- Identify, and remove any duplicate citations across different sections\n- Standardize citation formats if writers used different styles\n- Verify that all cited claims are properly attributed\n- Ensure citations don't disrupt the flow of reading\n- Cross-reference all inline citations with their corresponding source links\n\nUnified Source Documentation Format:\n1. Create one \"Sources\" section at the very end of the article (after conclusions section)\n2. Format each source entry consistently:\n   <li><a href=\"[URL]\">[Publication Name] - [Article Title]</a></li>\n3. Include for each source:\n   - Publication/Author name\n   - Article title (if available)\n   - Complete URL\n   - Date accessed (if available)\n4. Organize the sources alphabetically by publication name\n5. Remove any duplicate entries\n6. Verify all links are functional\n\nSEO and Formatting Guidelines:\n- Maintain proper HTML formatting throughout\n- Ensure citations don't interfere with keyword optimization\n- Format the Sources section with proper HTML tags\n- Use appropriate heading tags (h1, h2, h3) for structure\n- Include proper <img> alt descriptions and title tags if required\n\nOutput Format: The edited article should be structured as follows:\n- Main content with inline citations\n- Sources section at the end of the article with all reference links.  There should only be one\n  Sources section\n\nAdditional Requirements:\n- Maintain academic integrity while ensuring readability\n- Balance SEO optimization with proper citation practices\n- Ensure all writers' contributions are properly attributed\n- Preserve the original meaning and intent of cited material\n- Create smooth transitions between sections from different writers\n\nToday's date is : {{ $now }}\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        1900,
+        0
+      ],
+      "id": "617bf1e7-f972-4558-8f56-ebaab869098d",
+      "name": "Editor Agent"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Search this topic: {{ $json['Topic:'] }}\n",
+        "options": {
+          "systemMessage": "=You are Research Leader specialized in comprehensive topic analysis, research and content\nstructuring! Your task is to create an enriched, research-backed table of contents for a\ngiven topic.\n\nFollow these steps:\n\n1. Analyze the provided topic thoroughly.\n2. Conduct web research to gather current insights, trends, and expert perspectives on the\ntopic.\n3. Synthesize the gathered information to identify:\n  - Core concepts and principles\n  - Current trends and developments\n  - Expert opinions and best practices\n  - Real-world applications and examples\n  - Potential challenges and solutions\n4. Create a comprehensive table of contents that:\n  - Reflects both foundational knowledge and current developments\n  - Incorporates relevant case studies and examples\n  - Addresses common questions and concerns\n  - Includes practical applications and future implications\n5. Structure the content hierarchically, ensuring:\n  - Logical flow and progression\n  - Clear relationships between sections\n  - Balanced coverage of theoretical and practical aspects\n  - Integration of research-backed insights\n\nPlease format your response as follows:\n\nTopic Analysis:\n[Brief overview of the topic and its significance based on current research]\n\nKey Research Insights:\n  - [Insight 1 from web research]\n  - [Insight 2 from web research]\n  - [Insight 3 from web research]\n\nProposed Table of Contents:\n\nI. Introduction\n    A. Topic Overview and Current Relevance\n    B. Key Trends and Developments\n    C. Why This Matters Now\n\nII. Background and Context\n    A. Historical Development\n    B. Fundamental Concepts\n    C. Current State of the Field\n\nIII. [Main Theme 1 from Research]\n    A. [Key Finding/Aspect]\n    B. [Expert Perspectives]\n    C. [Real-world Applications]\n\nIV. [Main Theme 2 from Research]\n    A. [Key Finding/Aspect]\n    B. [Case Studies]\n    C. [Practical Implications]\n\n[Continue with additional research-based sections]\n\nIX. Future Perspectives\n    A. Emerging Trends\n    B. Potential Developments\n    C. Recommendations\n\nX. Conclusion\n    A. Summary of Key Insights\n    B. Actionable Takeaways\n    C. Final Thoughts\n\nResearch Sources:\n[List of key sources consulted]\n\nUsage Instructions:\n1. Provide a specific topic you want to analyze\n2. The AI will conduct web research using available tools including perplexity_ai_search tool\n3. Based on the research, it will generate a comprehensive, current, and well-structured table of contents\n4. Each section will be enriched with recent findings and expert insights\n5. The final structure will be suitable for various content formats (blog posts, articles, whitepapers)\n\nToday’s date is {{ $now }}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        200,
+        0
+      ],
+      "id": "2f1d2e7a-d7c6-4df1-a92d-13dfa45df856",
+      "name": "Research Agent"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Write the title, the subtitle, the chapter details, the introduction, the conclusion for a formal newsletter.\n\nPlease use this set of topics to create  2 chapters:\n{{ $json.output }}"
+            },
+            {
+              "content": "=Write the title, the subtitle, the chapters details, the introduction, the conclusions, and\nan image prompt for a SEO-friendly article.\n\nPlease use this set of topics to create chapters:\n{{ $json.output }}\n\nInstructions:\n- Place the article title in a JSON field called \"title\"\n- Place the subtitle in a JSON field called \"subtitle\"\n- Place the introduction in a JSON field called \"introduction\"\n- In the introduction introduce the topic that is then explored in depth in the rest of the article\n- The introduction should be around 100 words\n- Place the conclusions in a JSON field called \"conclusions\"\n- The conclusions should be around 100 words\n- Use the conclusions to sum all said in the article and offer a conclusion to the reader\n- The image prompt will be used to produce a photographic cover image for the article and should depict the topics discussed in the article\n- Place the image prompt in a JSON field called \"imagePrompt\"\n- For each chapter provide a title and an exhaustive prompt that will be used to write the chapter text\n- Place the chapters in an array field called \"chapters\"\n- For each chapter provide the fields \"chapter_title\" and \"chapter_prompt\"\n- The chapters should follow a logical flow and not repeat the same concepts\n- The chapters should be one related to the other and not isolated blocks of text. The text should be fluent and follow a linear logic.\n- Don’t start the chapters with “Chapter 1”, “Chapter 2”, “Chapter 3”… just write the title of the chapter\n- For the title and the chapters’ titles don’t use colons (:)\n- Write a JSON, new line format\n- Go deep in the topic you treat, don’t just throw some superficial info\n\nToday’s date is: {{ $now }}",
+              "role": "system"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        540,
+        0
+      ],
+      "id": "00b70683-d7cd-4120-985b-8e675c5ca8f4",
+      "name": "Project Planner Agent",
+      "credentials": {
+        "openAiApi": {
+          "id": "39fjpb6Bo98Z0ME3",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        600,
+        420
+      ],
+      "id": "b1f54b42-eead-48dd-bf69-4ce14bedce10",
+      "name": "OpenAI Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "39fjpb6Bo98Z0ME3",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1960,
+        380
+      ],
+      "id": "7731b981-d1b4-483c-8276-24c6b195e127",
+      "name": "OpenAI Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "39fjpb6Bo98Z0ME3",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "cmetalouli@gmail.com",
+        "subject": "={{ $('Aggregate2').item.json.title }}",
+        "message": "={{ $json.output }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        2280,
+        0
+      ],
+      "id": "030b2a13-0c93-4509-afae-4f2dafc932a4",
+      "name": "Gmail",
+      "webhookId": "abe8ada0-e8ec-4cf8-99aa-1688eff22a34",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "tg4DTzVaDEOoKce6",
+          "name": "Gmail CM"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Research Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Perplexity Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "Research Agent",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Research agent assistant",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out2": {
+      "main": [
+        [
+          {
+            "node": "Research agent assistant",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Research agent assistant": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "Aggregate2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate2": {
+      "main": [
+        [
+          {
+            "node": "Editor Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Editor Agent": {
+      "main": [
+        [
+          {
+            "node": "Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Research Agent": {
+      "main": [
+        [
+          {
+            "node": "Project Planner Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Project Planner Agent": {
+      "main": [
+        [
+          {
+            "node": "Split Out2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Research Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Research agent assistant",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Editor Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "8c962759-41de-4d9f-bc5c-9ea7b1381916",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5aa5608c063f9a5af1b19fba94653fe7c2a996710129424fdbb744132f878fab"
+  },
+  "id": "u1NGzcWhJVwj750a",
+  "tags": []
+}
